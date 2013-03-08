@@ -144,8 +144,8 @@ error(int exit_code, const char *fmt, ...)
    va_end(ap);
 
    /*
-    * if have non-zero exit code
-    * we should exit
+    * If we have a non-zero exit code
+    * then we should exit
     */
    if (exit_code)
        exit(exit_code);
@@ -370,7 +370,7 @@ handle(mydata_t *ptr)
 
             /*
              * if the final state reached
-             * then generate answer!
+             * then we should generate answer!
              */
             if (S_RN == newstate)
             {
@@ -502,7 +502,8 @@ init_automata()
 }
 
 /**********/
-int answerHTTP(mydata_t *ptr)
+int
+answerHTTP(mydata_t *ptr)
 {
     char        answer[2048];
     char        *pos;

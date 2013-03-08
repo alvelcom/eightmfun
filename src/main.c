@@ -1,3 +1,4 @@
+#include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <netinet/in.h>
@@ -281,7 +282,7 @@ handle(mydata_t *ptr)
                 ptr->buf.pos = 0;
                 break;
             case S_KEY:
-                APPEND(*pos, ptr->buf);
+                APPEND(tolower(*pos), ptr->buf);
                 break;
             case S_KEY_:
                 APPEND(0, ptr->buf);
@@ -290,13 +291,13 @@ handle(mydata_t *ptr)
                 ptr->buf.pos = 0;
                 break;
             case S_CVALUE:
-                APPEND(*pos, ptr->buf);
+                APPEND(tolower(*pos), ptr->buf);
                 break;
             case S_CVALUEr:
                 APPEND(0, ptr->buf);
-                if (0 == strcmp("Keep-Alive", ptr->buf.str))
+                if (0 == strcmp("keep-alive", ptr->buf.str))
                     ptr->type |= T_KA;
-                else if (0 == strcmp("Close", ptr->buf.str))
+                else if (0 == strcmp("close", ptr->buf.str))
                     ptr->type |= T_CLOSE;
                 break;
             default:

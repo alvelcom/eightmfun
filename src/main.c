@@ -164,7 +164,7 @@ error(int exit_code, const char *fmt, ...)
 int
 main(int argc, char **argv) 
 {
-    int                 listen_s, conn_s;
+    int                 listen_s;
     int                 epollfd, nfsd;
     int                 n;
     socklen_t           socklen;

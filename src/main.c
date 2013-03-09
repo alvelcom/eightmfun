@@ -114,7 +114,7 @@ state_t automata[S_LAST][256];
 /*
  * Forward declarations
  */
-void init_automata();
+void init_automata(void);
 int handle(mydata_t *);
 int answerHTTP(mydata_t *ptr);
 
@@ -154,7 +154,7 @@ error(int exit_code, const char *fmt, ...)
 }
 
 int
-main() 
+main(int argc, char **argv) 
 {
     int                 listen_s, conn_s;
     int                 epollfd, nfsd, flags;
@@ -459,7 +459,7 @@ fill(state_t state, state_t to_state)
 }
 
 void
-init_automata()
+init_automata(void)
 {
     int i;
     for (i = 0; i < S_LAST; i++)

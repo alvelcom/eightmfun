@@ -44,6 +44,7 @@ typedef enum state
     S_GE,
     S_GET,
     S_URL, 
+    S_URL_PARAMS,
     S_URL_,
     S_H,
     S_HT,
@@ -59,6 +60,7 @@ typedef enum state
     S_KEY_, 
     S_VALUE,
     S_VALUEr, 
+    S__CVALUE,
     S_CVALUE, 
     S_CVALUEr, 
     S_R,
@@ -360,7 +362,7 @@ handle_worker(mydata_t *ptr)
             case S_KEY_:
                 APPEND(0, ptr->buf);
                 if (0 == strcmp("connection", ptr->buf.str))
-                    newstate = S_CVALUE;
+                    newstate = S__CVALUE;
                 ptr->buf.pos = 0;
                 break;
             case S_CVALUE:
@@ -368,9 +370,9 @@ handle_worker(mydata_t *ptr)
                 break;
             case S_CVALUEr:
                 APPEND(0, ptr->buf);
-                if (0 == strcmp(" keep-alive", ptr->buf.str))
+                if (0 == strcmp("keep-alive", ptr->buf.str))
                     ptr->type |= T_KA;
-                else if (0 == strcmp(" close", ptr->buf.str))
+                else if (0 == strcmp("close", ptr->buf.str))
                     ptr->type |= T_CLOSE;
                 break;
             default:
@@ -484,6 +486,11 @@ init_fsm(void)
 
     fill(S_URL,              S_URL);
     fsm[S_URL      ][' ' ] = S_URL_;
+    fsm[S_URL      ]['?' ] = S_URL_PARAMS;
+    fsm[S_URL      ]['#' ] = S_URL_PARAMS;
+
+    fill(S_URL_PARAMS,      S_URL_PARAMS);
+    fsm[S_URL_PARAMS][' '] = S_URL_;
 
     fsm[S_URL_     ]['H' ] = S_H;
     fsm[S_H        ]['T' ] = S_HT;
@@ -507,6 +514,8 @@ init_fsm(void)
     /* but if KEY == 'Connection' then newstate = S_CVALUE */
     fill(S_VALUE,            S_VALUE);
     fill(S_CVALUE,           S_CVALUE);
+    fill(S__CVALUE,          S_CVALUE);
+    fsm[S__CVALUE  ][' ' ] = S__CVALUE;
     fsm[S_VALUE    ]['\r'] = S_VALUEr;
     fsm[S_CVALUE   ]['\r'] = S_CVALUEr;
     fsm[S_VALUEr   ]['\n'] = S_NEWLINE;
@@ -622,7 +631,7 @@ answer_http(mydata_t *ptr)
         closeafter = 1;
 
     pos = stpcpy(pos, "Connection: ");
-    pos = stpcpy(pos, closeafter ? "close \r\n" : "keep-alive\r\n");
+    pos = stpcpy(pos, closeafter ? "close\r\n" : "keep-alive\r\n");
     
     /*
      * Empty line -- end of headers here

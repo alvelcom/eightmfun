@@ -366,9 +366,9 @@ handle_worker(mydata_t *ptr)
                 break;
             case S_CVALUEr:
                 APPEND(0, ptr->buf);
-                if (0 == strcmp("keep-alive", ptr->buf.str))
+                if (0 == strcmp(" keep-alive", ptr->buf.str))
                     ptr->type |= T_KA;
-                else if (0 == strcmp("close", ptr->buf.str))
+                else if (0 == strcmp(" close", ptr->buf.str))
                     ptr->type |= T_CLOSE;
                 break;
             default:

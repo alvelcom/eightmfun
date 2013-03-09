@@ -23,6 +23,8 @@
 #define RCV_BUF         2048
 #define SEND_BUF        2048
 
+#define FINGERPRINT     "eightmfun/0.0.1"
+
 typedef enum qtype
 {
     T_UNDEF = 0,
@@ -419,7 +421,7 @@ bad_method:
     {
         const char ans0[] =
             "HTTP/1.0 400 Bad Request\r\n"
-            "Server: eightmfun/0.0.0.0.0.0.1\r\n"
+            "Server: " FINGERPRINT "\r\n"
             "Content-Type: text/plain\r\n"
             "Connection: close\r\n"
             "\r\n"
@@ -431,7 +433,7 @@ bad_method:
     {
         const char ans1[] =
             "HTTP/1.1 400 Bad Request\r\n"
-            "Server: eightmfun/0.0.0.0.0.0.1\r\n"
+            "Server: " FINGERPRINT "\r\n"
             "Content-Type: text/plain\r\n"
             "Connection: close\r\n"
             "\r\n"
@@ -621,7 +623,7 @@ answer_http(mydata_t *ptr)
     /*
      * Sing the server
      */
-    pos = stpcpy(pos, "Server: eightmfun/0.0.0.0.0.1\r\nContent-Type: ");
+    pos = stpcpy(pos, "Server: " FINGERPRINT "\r\nContent-Type: ");
 
     /*
      * Spec. content type ...

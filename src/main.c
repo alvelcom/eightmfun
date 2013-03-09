@@ -562,13 +562,32 @@ answer_http(mydata_t *ptr)
     if (*filename) /* we have filename (i.e. filename == "") */
     {
         /*
+         * Check the length of path
+         */
+        if (strlen(filename) > 1024)
+        {
+            pos = stpcpy(pos, "400 Bad Request\r\n");
+            ans = "Bad request\r\n";
+            content_length = strlen(ans);
+        }
+        /*
+         * Check bad patterns
+         */
+        else if (strstr(ptr->filename.str, "/../") 
+              || strstr(ptr->filename.str, "/~"))
+        {
+            pos = stpcpy(pos, "403 Forbidden\r\n");
+            ans = "Forbidden\r\n";
+            content_length = strlen(ans);
+        }
+        /*
          * Trying to open file
          *
          * At this moment we don't bother about permissions 
          * and other stuff. Just think that if it un-openable
          * that it doesnot exists :)
          */
-        if (-1 == (filed = open(filename, O_RDONLY)))
+        else if (-1 == (filed = open(filename, O_RDONLY)))
         {
             pos = stpcpy(pos, "404 File not found\r\n");
             ans = "File not found\r\n";

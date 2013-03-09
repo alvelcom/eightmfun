@@ -115,7 +115,7 @@ state_t fsm[S_LAST][256];
  * Forward declarations
  */
 void init_fsm(void);
-int handle_listen(int epollfd, int listen_fd);
+void handle_listen(int epollfd, int listen_fd);
 int handle_worker(mydata_t *);
 int answer_http(mydata_t *ptr);
 
@@ -243,7 +243,7 @@ main(int argc, char **argv)
     return 0;
 }
 
-int
+void
 handle_listen(int epollfd, int listen_fd)
 {
     struct epoll_event  ev;

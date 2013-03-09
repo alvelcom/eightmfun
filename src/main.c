@@ -16,10 +16,12 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#define BACK_LOG   -1
-#define MAX_EVENTS 1000
+#define LISTEN_PORT     9999
+#define BACK_LOG        (-1)
+#define MAX_EVENTS      1000
 
-#define RCV_BUF    2048
+#define RCV_BUF         2048
+#define SEND_BUF        2048
 
 typedef enum qtype
 {
@@ -181,7 +183,7 @@ main(int argc, char **argv)
      */
     memset(&addr, 0, sizeof(addr));
     addr.sin_family      = AF_INET;
-    addr.sin_port        = htons(9999);
+    addr.sin_port        = htons(LISTEN_PORT);
     addr.sin_addr.s_addr = htonl(INADDR_ANY);
     socklen              = sizeof(addr);
 
@@ -515,7 +517,7 @@ init_fsm(void)
 int
 answer_http(mydata_t *ptr)
 {
-    char        answer[2048];
+    char        answer[SEND_BUF];
     char        *pos;
     char        *filename;
     char        *ans;

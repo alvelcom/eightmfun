@@ -117,7 +117,7 @@ state_t fsm[S_LAST][256];
 void init_fsm(void);
 int handle_listen(int epollfd, int listen_fd);
 int handle_worker(mydata_t *);
-int answerHTTP(mydata_t *ptr);
+int answer_http(mydata_t *ptr);
 
 /*
  * Macro for appending one character to the tail of zstr
@@ -384,12 +384,12 @@ handle_worker(mydata_t *ptr)
             if (S_RN == newstate)
             {
                 /*
-                 * If answerHTTP return zero then we should
+                 * If answer_http return zero then we should
                  * reset current state and wait for next query.
                  *
                  * Otherwise we close connection
                  */
-                if (answerHTTP(ptr))
+                if (answer_http(ptr))
                     goto close_conn;
                 else
                 {
@@ -512,7 +512,7 @@ init_fsm(void)
 
 /**********/
 int
-answerHTTP(mydata_t *ptr)
+answer_http(mydata_t *ptr)
 {
     char        answer[2048];
     char        *pos;

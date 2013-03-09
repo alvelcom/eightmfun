@@ -116,7 +116,7 @@ state_t fsm[S_LAST][256];
  * Forward declarations
  */
 void init_fsm(void);
-void handle_listen(int epollfd, int listen_fd);
+void handle_listen(struct sockaddr_in * addr, int epollfd, int listen_fd);
 int handle_worker(mydata_t *);
 int answer_http(mydata_t *ptr);
 
@@ -231,7 +231,7 @@ main(int argc, char **argv)
              * Let's accept it!
              */
             if (0 == events[n].data.ptr)
-                handle_listen(epollfd, listen_s);
+                handle_listen(&addr, epollfd, listen_s);
 
             /*
              * Event occurs on worker socket
@@ -244,17 +244,17 @@ main(int argc, char **argv)
     return 0;
 }
 
-void
-handle_listen(int epollfd, int listen_fd)
+inline void
+handle_listen(struct sockaddr_in *addr, int epollfd, int listen_fd)
 {
     struct epoll_event  ev;
     socklen_t           socklen;
-    struct sockaddr_in  addr;
     struct mydata       *data;
     int                 conn_s, flags;
 
+    socklen = sizeof(struct sockaddr_in);
     if (-1 == (conn_s = accept(listen_fd,
-                    (struct sockaddr *) &addr, &socklen)))
+                    (struct sockaddr *) addr, &socklen)))
         error(6, "Bad accept call");
     
     /*

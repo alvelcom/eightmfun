@@ -284,7 +284,7 @@ handle_listen(struct sockaddr_in *addr, int epollfd, int listen_fd)
     /*
      * Insert to deq
      */
-    if (data->prev = head)
+    if (0 != (data->prev = head))
         head->next = data;
     head = data;
 
@@ -310,7 +310,7 @@ handle_worker(mydata_t *ptr)
     /*
      * Reader cycle
      */
-    while (size = read(ptr->fd, buf, RCV_BUF))
+    while (0 != (size = read(ptr->fd, buf, RCV_BUF)))
     {
         if (-1 == size)
         {

@@ -115,7 +115,8 @@ state_t automata[S_LAST][256];
  * Forward declarations
  */
 void init_automata(void);
-int handle(mydata_t *);
+int handle_listen(int epollfd, int listen_fd);
+int handle_worker(mydata_t *);
 int answerHTTP(mydata_t *ptr);
 
 /*
@@ -157,12 +158,11 @@ int
 main(int argc, char **argv) 
 {
     int                 listen_s, conn_s;
-    int                 epollfd, nfsd, flags;
+    int                 epollfd, nfsd;
     int                 n;
     socklen_t           socklen;
     struct sockaddr_in  addr;
     struct epoll_event  ev, events[MAX_EVENTS];
-    struct mydata       *data;
 
     /*
      * Initialize http parser automata
@@ -230,51 +230,13 @@ main(int argc, char **argv)
              * Let's accept it!
              */
             if (0 == events[n].data.ptr)
-            {
-                if (-1 == (conn_s = accept(listen_s,
-                                (struct sockaddr *) &addr, &socklen)))
-                    error(6, "Bad accept call");
-                
-                /*
-                 * Using epoll and blocking sockets seems to be not really
-                 * good idea.
-                 */
-                if (-1 == fcntl(conn_s, F_SETFL, O_NONBLOCK))
-                    error(7, "Bad fcntl call: set conn_s O_NONBLOCK flag");
+                handle_listen(epollfd, listen_s);
 
-                flags = 1;
-                setsockopt(conn_s, IPPROTO_TCP, TCP_NODELAY, &flags, sizeof(flags));
-
-                /*
-                 * Now we have one more fd. What will we do with it?
-                 * We feed up it to epoll! 
-                 */
-                data = calloc(1, sizeof(mydata_t));
-                data->fd = conn_s;
-                data->state = S_;
-
-                /*
-                 * Insert to deq
-                 */
-                if (data->prev = head)
-                    head->next = data;
-                head = data;
-
-                /*
-                 * See man epoll(4) about Level-Triggered and Edge-Triggered
-                 */
-                ev.events = EPOLLIN | EPOLLET;
-                ev.data.ptr = data;
-                if (-1 == epoll_ctl(epollfd, EPOLL_CTL_ADD, conn_s, &ev))
-                    error(7, "Bad epoll_ctl call on conn_s socket");
-            }
+            /*
+             * Event occurs on worker socket
+             */
             else
-            {
-                /*
-                 * Event occurs on worker socket
-                 */
-                handle(events[n].data.ptr);
-            }
+                handle_worker(events[n].data.ptr);
         }
     }
 
@@ -282,7 +244,54 @@ main(int argc, char **argv)
 }
 
 int
-handle(mydata_t *ptr)
+handle_listen(int epollfd, int listen_fd)
+{
+    struct epoll_event  ev;
+    socklen_t           socklen;
+    struct sockaddr_in  addr;
+    struct mydata       *data;
+    int                 conn_s, flags;
+
+    if (-1 == (conn_s = accept(listen_fd,
+                    (struct sockaddr *) &addr, &socklen)))
+        error(6, "Bad accept call");
+    
+    /*
+     * Using epoll and blocking sockets seems to be not really
+     * good idea.
+     */
+    if (-1 == fcntl(conn_s, F_SETFL, O_NONBLOCK))
+        error(7, "Bad fcntl call: set conn_s O_NONBLOCK flag");
+
+    flags = 1;
+    setsockopt(conn_s, IPPROTO_TCP, TCP_NODELAY, &flags, sizeof(flags));
+
+    /*
+     * Now we have one more fd. What will we do with it?
+     * We feed up it to epoll! 
+     */
+    data = calloc(1, sizeof(mydata_t));
+    data->fd = conn_s;
+    data->state = S_;
+
+    /*
+     * Insert to deq
+     */
+    if (data->prev = head)
+        head->next = data;
+    head = data;
+
+    /*
+     * See man epoll(4) about Level-Triggered and Edge-Triggered
+     */
+    ev.events = EPOLLIN | EPOLLET;
+    ev.data.ptr = data;
+    if (-1 == epoll_ctl(epollfd, EPOLL_CTL_ADD, conn_s, &ev))
+        error(7, "Bad epoll_ctl call on conn_s socket");
+}
+
+int
+handle_worker(mydata_t *ptr)
 {
     char        buf[RCV_BUF];
     ssize_t     size;

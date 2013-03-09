@@ -109,12 +109,12 @@ mydata_t *head;
  *
  * State transition table here
  */
-state_t automata[S_LAST][256];
+state_t fsm[S_LAST][256];
 
 /*
  * Forward declarations
  */
-void init_automata(void);
+void init_fsm(void);
 int handle_listen(int epollfd, int listen_fd);
 int handle_worker(mydata_t *);
 int answerHTTP(mydata_t *ptr);
@@ -165,9 +165,9 @@ main(int argc, char **argv)
     struct epoll_event  ev, events[MAX_EVENTS];
 
     /*
-     * Initialize http parser automata
+     * Initialize http parser fsm
      */
-    init_automata();
+    init_fsm();
 
     /*
      * Create socket
@@ -326,7 +326,7 @@ handle_worker(mydata_t *ptr)
              * Lookup for a new state
              */
             oldstate = newstate;
-            newstate = automata[oldstate][(unsigned char)*pos];
+            newstate = fsm[oldstate][(unsigned char)*pos];
 
             switch (newstate)
             {
@@ -464,50 +464,50 @@ fill(state_t state, state_t to_state)
 {
     int i;
     for (i = 0; i < 256; i++)
-        automata[state][i] = to_state;
+        fsm[state][i] = to_state;
 }
 
 void
-init_automata(void)
+init_fsm(void)
 {
     int i;
     for (i = 0; i < S_LAST; i++)
         fill(S_, S_ERROR);
 
-    automata[S_         ]['G' ] = S_G;
-    automata[S_G        ]['E' ] = S_GE;
-    automata[S_GE       ]['T' ] = S_GET;
-    automata[S_GET      ][' ' ] = S_URL;
+    fsm[S_         ]['G' ] = S_G;
+    fsm[S_G        ]['E' ] = S_GE;
+    fsm[S_GE       ]['T' ] = S_GET;
+    fsm[S_GET      ][' ' ] = S_URL;
 
-    fill(    S_URL,               S_URL);
-    automata[S_URL      ][' ' ] = S_URL_;
+    fill(S_URL,              S_URL);
+    fsm[S_URL      ][' ' ] = S_URL_;
 
-    automata[S_URL_     ]['H' ] = S_H;
-    automata[S_H        ]['T' ] = S_HT;
-    automata[S_HT       ]['T' ] = S_HTT;
-    automata[S_HTT      ]['P' ] = S_HTTP;
-    automata[S_HTTP     ]['/' ] = S_HTTP_;
-    automata[S_HTTP_    ]['1' ] = S_HTTP_1;
-    automata[S_HTTP_1   ]['.' ] = S_HTTP_1_;
-    automata[S_HTTP_1_  ]['0' ] = S_HTTP_1_X;
-    automata[S_HTTP_1_  ]['1' ] = S_HTTP_1_X;
-    automata[S_HTTP_1_X ]['\r'] = S_HTTP_1_Xr;
-    automata[S_HTTP_1_Xr]['\n'] = S_NEWLINE;
+    fsm[S_URL_     ]['H' ] = S_H;
+    fsm[S_H        ]['T' ] = S_HT;
+    fsm[S_HT       ]['T' ] = S_HTT;
+    fsm[S_HTT      ]['P' ] = S_HTTP;
+    fsm[S_HTTP     ]['/' ] = S_HTTP_;
+    fsm[S_HTTP_    ]['1' ] = S_HTTP_1;
+    fsm[S_HTTP_1   ]['.' ] = S_HTTP_1_;
+    fsm[S_HTTP_1_  ]['0' ] = S_HTTP_1_X;
+    fsm[S_HTTP_1_  ]['1' ] = S_HTTP_1_X;
+    fsm[S_HTTP_1_X ]['\r'] = S_HTTP_1_Xr;
+    fsm[S_HTTP_1_Xr]['\n'] = S_NEWLINE;
 
-    fill(    S_NEWLINE,           S_KEY);
-    automata[S_NEWLINE  ]['\r'] = S_R;
-    automata[S_R        ]['\n'] = S_RN; /* the end */
+    fill(S_NEWLINE,          S_KEY);
+    fsm[S_NEWLINE  ]['\r'] = S_R;
+    fsm[S_R        ]['\n'] = S_RN; /* the end */
 
-    fill(    S_KEY,               S_KEY);
-    automata[S_KEY      ][':' ] = S_KEY_;
-    automata[S_KEY_     ][' ' ] = S_VALUE;
+    fill(S_KEY,              S_KEY);
+    fsm[S_KEY      ][':' ] = S_KEY_;
+    fsm[S_KEY_     ][' ' ] = S_VALUE;
     /* but if KEY == 'Connection' then newstate = S_CVALUE */
-    fill(    S_VALUE,             S_VALUE);
-    fill(    S_CVALUE,            S_CVALUE);
-    automata[S_VALUE    ]['\r'] = S_VALUEr;
-    automata[S_CVALUE   ]['\r'] = S_CVALUEr;
-    automata[S_VALUEr   ]['\n'] = S_NEWLINE;
-    automata[S_CVALUEr  ]['\n'] = S_NEWLINE;
+    fill(S_VALUE,            S_VALUE);
+    fill(S_CVALUE,           S_CVALUE);
+    fsm[S_VALUE    ]['\r'] = S_VALUEr;
+    fsm[S_CVALUE   ]['\r'] = S_CVALUEr;
+    fsm[S_VALUEr   ]['\n'] = S_NEWLINE;
+    fsm[S_CVALUEr  ]['\n'] = S_NEWLINE;
 }
 
 /**********/

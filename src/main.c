@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -520,6 +521,7 @@ answer_http(mydata_t *ptr)
     char        *ans;
     int         filed;
     struct      stat stat;
+    ssize_t     content_length;
     char        closeafter;
 
     /*
@@ -537,11 +539,7 @@ answer_http(mydata_t *ptr)
     /*
      * Proto version
      */
-    if (ptr->type & T_GET0)
-        strcpy(pos, "HTTP/1.0 ");
-    else
-        strcpy(pos, "HTTP/1.1 ");
-    while (*pos) pos++;
+    pos = stpcpy(pos, ptr->type & T_GET0 ? "HTTP/1.0 " : "HTTP/1.1 ");
 
     /*
      * Here we decide what to do.
@@ -561,8 +559,9 @@ answer_http(mydata_t *ptr)
          */
         if (-1 == (filed = open(filename, O_RDONLY)))
         {
-            strcpy(pos, "404 File not found\r\n");
+            pos = stpcpy(pos, "404 File not found\r\n");
             ans = "File not found\r\n";
+            content_length = strlen(ans);
         }
         /*
          * We also need know about file size
@@ -573,7 +572,10 @@ answer_http(mydata_t *ptr)
             return 1;
         }
         else
-            strcpy(pos, "200 OK\r\n");
+        {
+            pos = stpcpy(pos, "200 OK\r\n");
+            content_length = stat.st_size;
+        }
     }
     else
     {
@@ -581,25 +583,23 @@ answer_http(mydata_t *ptr)
          * "GET / HTTP" requested
          * Just print an index string
          */
-        strcpy(pos, "200 OK\r\n");
+        pos = stpcpy(pos, "200 OK\r\n");
         ans = "Some page here\r\n";
+        content_length = strlen(ans);
     }
-    while (*pos) pos++;
 
     /*
      * Sing the server
      */
-    strcpy(pos, "Server: eightmfun/0.0.0.0.0.1\r\nContent-Type: ");
-    while (*pos) pos++;
+    pos = stpcpy(pos, "Server: eightmfun/0.0.0.0.0.1\r\nContent-Type: ");
 
     /*
      * Spec. content type ...
      */
     if (-1 != filed)
-        strcpy(pos, "application/octet-stream\r\n");
+        pos = stpcpy(pos, "application/octet-stream\r\n");
     else
-        strcpy(pos, "text/plain\r\n");
-    while (*pos) pos++;
+        pos = stpcpy(pos, "text/plain\r\n");
 
     /*
      * ... and content length.
@@ -607,34 +607,31 @@ answer_http(mydata_t *ptr)
      * Since this super server doesnot support chunked encoding
      * we must supply content length.
      */
-    if (-1 != filed)
-        sprintf(pos, "Content-Length: %zu\r\n", stat.st_size);
-    else
-        sprintf(pos, "Content-Length: %zu\r\n", strlen(ans));
-    while (*pos) pos++;
+    pos += sprintf(pos, "Content-Length: %zu\r\n", content_length);
 
     /*
      * What we will do with connection after sending answer?
      * Browser should wondering after.
      */
-    if (ptr->type & T_CLOSE || !(ptr->type & T_GET1))
-        strcpy(pos, "Connection: close\r\n"), closeafter = 1;
-    else
-        strcpy(pos, "Connection: keep-alive\r\n");
-    while (*pos) pos++;
+    closeafter = 1;
+    if (ptr->type & T_KA || ptr->type & T_GET1)
+        closeafter = 0;
+    if (ptr->type & T_CLOSE)
+        closeafter = 1;
+
+    pos = stpcpy(pos, "Connection: ");
+    pos = stpcpy(pos, closeafter ? "close \r\n" : "keep-alive\r\n");
     
     /*
      * Empty line -- end of headers here
      */
-    strcpy(pos, "\r\n");
-    while (*pos) pos++;
+    pos = stpcpy(pos, "\r\n");
 
     /*
      * We have a little body... Send it with headers
      */
     if (-1 == filed)
-        strcpy(pos, ans);
-    while (*pos) pos++;
+        pos = stpcpy(pos, ans);
 
     /*
      * Sending headers (and a little body possibly) itself

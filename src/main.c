@@ -543,7 +543,6 @@ answer_http(mydata_t *ptr)
      * After appending don't forget to move `pos` forward.
      *
      * If requested file exists then we should send it.
-     * HINT: try to request /../../../../../../etc/passwd
      */
 
     closeafter = 0;
@@ -575,8 +574,10 @@ answer_http(mydata_t *ptr)
         /*
          * Check bad patterns
          */
-        else if (strstr(ptr->filename.str, "/../") 
-              || strstr(ptr->filename.str, "/~"))
+        else if (*ptr->filename.str != '/'
+              || strstr(ptr->filename.str, "/../") 
+              || strstr(ptr->filename.str, "/~")
+              || strstr(ptr->filename.str, "//"))
         {
             pos = stpcpy(pos, "403 Forbidden\r\n");
             ans = "Forbidden\r\n";

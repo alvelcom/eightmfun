@@ -123,7 +123,7 @@ state_t fsm[S_LAST][256];
  */
 void init_fsm(void);
 void handle_listen(struct sockaddr_in * addr, int epollfd, int listen_fd);
-int handle_worker(mydata_t *);
+int handle_worker(struct epoll_event *, int);
 int answer_http(mydata_t *ptr);
 
 /*
@@ -243,7 +243,7 @@ main(int argc, char **argv)
              * Event occurs on worker socket
              */
             else
-                handle_worker(events[n].data.ptr);
+                handle_worker(events + n, epollfd);
         }
     }
 
@@ -291,36 +291,37 @@ handle_listen(struct sockaddr_in *addr, int epollfd, int listen_fd)
     /*
      * See man epoll(4) about Level-Triggered and Edge-Triggered
      */
-    ev.events = EPOLLIN | EPOLLET;
+    ev.events = EPOLLIN | EPOLLET | EPOLLRDHUP;
     ev.data.ptr = data;
     if (-1 == epoll_ctl(epollfd, EPOLL_CTL_ADD, conn_s, &ev))
         error(7, "Bad epoll_ctl call on conn_s socket");
 }
 
 int
-handle_worker(mydata_t *ptr)
+handle_worker(struct epoll_event *ev, int epollfd)
 {
     char        buf[RCV_BUF];
     ssize_t     size;
     char        *pos;
     state_t     oldstate, newstate;
+    mydata_t    *ptr;
+
+    ptr = ev->data.ptr;
 
     newstate = ptr->state;
 
     /*
      * Reader cycle
      */
-    while (0 != (size = read(ptr->fd, buf, RCV_BUF)))
+    while (EPOLLIN & ev->events && 0 != (size = read(ptr->fd, buf, RCV_BUF)))
     {
         if (-1 == size)
         {
             /*
              * I want to catch up the situation when
              * no available data in socket exists... ughm...
-             *
-             * How to do it right?
              */
-            if (11 == errno)
+            if (EAGAIN == errno)
                 break;
 
             error(0, "Bad read call");
@@ -409,6 +410,11 @@ handle_worker(mydata_t *ptr)
         }
     }
 
+    if (EPOLLRDHUP & ev->events)
+    {
+        goto close_conn;
+    }
+
     /*
      * Save the state
      */
@@ -457,6 +463,7 @@ close_conn:
     /*
      * Close the connection and free the memory
      */
+    epoll_ctl(epollfd, EPOLL_CTL_DEL, ptr->fd, NULL);
     close(ptr->fd);
     if (ptr->filename.str) free(ptr->filename.str);
     if (ptr->buf.str)      free(ptr->buf.str);
